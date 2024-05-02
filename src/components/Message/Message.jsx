@@ -48,6 +48,9 @@ import SentimentSatisfiedAltIcon from "@mui/icons-material/SentimentSatisfiedAlt
 import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 function Message({ info, chat }) {
   Message.propTypes = {
     info: PropTypes.any,
@@ -59,6 +62,11 @@ function Message({ info, chat }) {
   const [open1, setOpen1] = React.useState(false);
   const handleOpen1 = () => setOpen1(!open1);
   const inputFileRef = React.useRef(null);
+  const notify = () => {
+    toast.success("Upload successfully !", {
+      position: "bottom-right",
+    });
+  };
   const addIcon = (emoji) => {
     if (input instanceof File) {
       setInput(emoji);
@@ -68,13 +76,59 @@ function Message({ info, chat }) {
       } else {
         setInput(emoji);
       }
-      console.log(input);
     }
   };
   const handleButtonClick = () => {
     // trigger the click event of the input file
     inputFileRef.current.click();
   };
+  const downloadImage = async () => {
+    try {
+      var id = 9;
+      const response = await axios.get(
+        "http://localhost:8080/chatapp/api/media/download/" + id,
+        {
+          responseType: "blob",
+        }
+      );
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"],
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        id + "." + response.headers["content-type"].split("/")[1]
+      );
+      document.body.appendChild(link);
+      link.click();
+    } catch (error) {
+      console.error("Error downloading image:", error);
+    }
+  };
+  const uploadImage = async () => {
+    try {
+      const media_file = new FormData();
+      media_file.append("media_file", input);
+      const response = await axios.post(
+        "http://localhost:8080/chatapp/api/media/upload",
+        media_file,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      if (response.status === 200) {
+        notify();
+        setInput("");
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+  };
+  const sendMessage = async () => {};
   const chatList = (
     <>
       <div className="mt-5 grid grid-cols-1 gap-10">
@@ -100,10 +154,15 @@ function Message({ info, chat }) {
           className="w-full border-2 max-w-[40rem]"
         >
           <CardBody className="p-3">
-            <Typography color="black">
+            <Typography
+              color="black"
+              className="cursor-pointer"
+              onClick={downloadImage}
+            >
               <img
                 src="http://localhost:8080/chatapp/api/media/download/9"
                 alt="Chat"
+                className="max-w-[40rem]"
               />
             </Typography>
             <Typography>12:45</Typography>
@@ -342,7 +401,6 @@ function Message({ info, chat }) {
                 className="hidden invisible"
                 ref={inputFileRef}
                 onChange={(event) => {
-                  const file = event.target.files[0];
                   setInput(event.target.files[0]);
                 }}
               />
@@ -423,6 +481,7 @@ function Message({ info, chat }) {
               <IconButton
                 variant="text"
                 className="rounded-full"
+                onClick={input instanceof File ? uploadImage : sendMessage}
                 color={input ? "gray" : "blue-gray"}
                 disabled={!input}
               >

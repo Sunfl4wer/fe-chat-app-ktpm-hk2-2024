@@ -54,34 +54,6 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
   };
   const [imageUrl, setImageUrl] = React.useState(null);
 
-  useEffect(() => {
-    const loadImage = async () => {
-      const response = await axios.get(
-        "http://localhost:8080/chatapp/api/media/download/9",
-        {
-          responseType: "blob", // Set the response type to blob
-        }
-      );
-
-      // Create a Blob from the response data
-      const blob = new Blob([response.data], {
-        type: response.headers["content-type"],
-      });
-
-      // Create a temporary anchor element
-      const url = window.URL.createObjectURL(blob);
-
-      // Create a link and trigger a click to download the file
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "image.jpg"); // Set the filename for downloading
-      document.body.appendChild(link);
-      link.click();
-    };
-
-    loadImage();
-  }, []);
-
   const handleChatIndex = (index) => {
     handleIndex(index);
     var chat = "";
@@ -90,7 +62,6 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
   };
   return (
     <>
-      <div>{imageUrl && <img src={imageUrl} alt="Chat" />}</div>
       <div className="m-4 grid grid-cols-6">
         <div className="col-span-4 ">
           <div className="relative flex w-full gap-2 md:w-max">
