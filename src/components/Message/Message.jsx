@@ -101,9 +101,10 @@ function Message({ info, chat }) {
         >
           <CardBody className="p-3">
             <Typography color="black">
-              &quot;I found solution to all my design needs from Creative Tim. I
-              use them as a freelancer in my hobby projects for fun! And its
-              really affordable, very humble guys !!!&quot;
+              <img
+                src="http://localhost:8080/chatapp/api/media/download/9"
+                alt="Chat"
+              />
             </Typography>
             <Typography>12:45</Typography>
           </CardBody>

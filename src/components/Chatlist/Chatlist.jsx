@@ -56,20 +56,27 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
 
   useEffect(() => {
     const loadImage = async () => {
-      const result = await axios.get(
-        "http:/localhost:8080/chatapp/api/media/download/9",
-        { responseType: "arraybuffer" }
+      const response = await axios.get(
+        "http://localhost:8080/chatapp/api/media/download/9",
+        {
+          responseType: "blob", // Set the response type to blob
+        }
       );
 
-      // Create a blob from the response data
-      const blob = new Blob([result.data], { type: "image/jpeg" });
+      // Create a Blob from the response data
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"],
+      });
 
-      // Create a URL for the blob
-      const url = URL.createObjectURL(blob);
+      // Create a temporary anchor element
+      const url = window.URL.createObjectURL(blob);
 
-      // Set the URL as the image URL
-      setImageUrl(url);
-      console.log(url);
+      // Create a link and trigger a click to download the file
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "image.jpg"); // Set the filename for downloading
+      document.body.appendChild(link);
+      link.click();
     };
 
     loadImage();
