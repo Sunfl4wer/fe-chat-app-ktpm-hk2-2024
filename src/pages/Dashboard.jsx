@@ -45,6 +45,11 @@ import Chip from "@mui/material/Chip";
 import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
 import Message from "../components/Message/Message";
 import Chatlist from "../components/Chatlist/Chatlist";
+import { Client } from "@stomp/stompjs";
+import { WebSocket } from "ws";
+import axios from "axios";
+import withReactContent from "sweetalert2-react-content";
+import Swal from "sweetalert2";
 function Dashboard() {
   const [open1, setOpen1] = React.useState(false);
   const [open2, setOpen2] = React.useState(false);
@@ -52,7 +57,15 @@ function Dashboard() {
   const [page, setPage] = React.useState("message");
   const [chat, setChat] = React.useState([]);
   const [info, setInfo] = React.useState();
+  const [current_info, setCurrent_info] = React.useState();
   const [index, setIndex] = React.useState(-1);
+  const [username, setUsername] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [phoneNumber, setPhoneNumber] = React.useState("");
+  const [firstname, setFirstname] = React.useState("");
+  const [lastname, setLastname] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [birthday, setBirthday] = React.useState("");
   const handleOpen1 = () => setOpen1(!open1);
   const handleOpen2 = () => setOpen2(!open2);
   const handleOpen3 = () => setOpen3(!open3);
@@ -60,9 +73,158 @@ function Dashboard() {
   const handleIndex = (index) => setIndex(index);
   const handleChat = (chat) => setChat(chat);
   const handleInfo = (info) => setInfo(info);
-  const logOut = () => {
+  const fileInput = React.useRef(null);
+
+  const logOut = async () => {
     localStorage.removeItem("token");
+    const response = await axios.get("http://localhost:8099/auth/logout", {
+      mode: "cors",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+    });
     window.location.href = "/";
+  };
+  const Toast = withReactContent(Swal).mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 1500,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
+  const handleAvatarClick = () => {
+    fileInput.current.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    handleOpen1();
+    Swal.fire({
+      title: "Đây sẽ là ảnh đại diện mới của bạn!",
+      imageUrl: file ? URL.createObjectURL(file) : "",
+      imageWidth: 400,
+      imageHeight: 200,
+      imageAlt: "Custom image",
+      confirmButtonText: "OK",
+      cancelButtonText: "Cancel",
+      showCancelButton: true,
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const data = {
+          username: current_info.username,
+          password: current_info.password,
+          emailAddress: current_info.emailAddress,
+          avatarUrl: file ? file.name : current_info.avatarUrl,
+          firstName: current_info.firstName,
+          lastName: current_info.lastName,
+          birthDate: current_info.birthDate,
+        };
+        const response = axios
+          .put(
+            "http://localhost:8099/users/" + localStorage.getItem("user"),
+            data,
+            {
+              mode: "cors",
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+                "Content-Type": "application/json",
+              },
+            }
+          )
+          .then((response) => {
+            if (response.status === 200) {
+              Toast.fire({
+                icon: "success",
+                title: "Update successfully",
+              });
+              loadcurrent_info();
+            }
+            if (response.status === 401) {
+              localStorage.removeItem("token");
+              window.location.reload();
+            }
+          });
+      }
+    });
+  };
+  if (!localStorage.getItem("token")) {
+    window.location.href = "/";
+  }
+  const loadcurrent_info = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:8099/users/" + localStorage.getItem("user"),
+        {
+          mode: "cors",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      setCurrent_info(response.data);
+      setUsername(response.data.username);
+      setPassword(response.data.password);
+      setPhoneNumber(response.data.phoneNumber);
+      setFirstname(response.data.firstName);
+      setLastname(response.data.lastName);
+      setEmail(response.data.emailAddress);
+      setBirthday(response.data.birthDate);
+    } catch (error) {
+      if (error.response.status === 401) {
+        localStorage.removeItem("token");
+      }
+    }
+  };
+  React.useEffect(() => {
+    loadcurrent_info();
+  }, []);
+  const changeInfo = async (
+    username,
+    password,
+    phoneNumber,
+    firstname,
+    lastname,
+    email,
+    birthday,
+    avatarUrl
+  ) => {
+    handleOpen2();
+    const data = {
+      username: username,
+      password: password,
+      phoneNumber: phoneNumber,
+      emailAddress: email,
+      firstName: firstname,
+      lastName: lastname,
+      birthDate: birthday,
+      avatarUrl: avatarUrl,
+    };
+    const response = await axios.put(
+      "http://localhost:8099/users/" + localStorage.getItem("user"),
+      data,
+      {
+        mode: "cors",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (response.status === 200) {
+      Toast.fire({
+        icon: "success",
+        title: "Update successfully",
+      }).then(() => {
+        loadcurrent_info();
+        handleOpen1();
+      });
+    }
   };
   return (
     <div className="grid grid-cols-12">
@@ -72,7 +234,11 @@ function Dashboard() {
             <div className="mt-5 p-5">
               <div className="grid justify-center items-center">
                 <Avatar
-                  src="https://docs.material-tailwind.com/img/face-2.jpg"
+                  src={
+                    current_info && current_info.avatarUrl
+                      ? "/" + current_info.avatarUrl
+                      : "https://docs.material-tailwind.com/img/face-2.jpg"
+                  }
                   alt="avatar"
                   size="lg"
                   className="mt-1 border-2 border-white"
@@ -92,15 +258,31 @@ function Dashboard() {
                     <div className="grid grid-cols-1 gap-4">
                       <div className="grid grid-cols-3 justify-items-center">
                         <Avatar
-                          src="https://docs.material-tailwind.com/img/face-2.jpg"
+                          src={
+                            current_info && current_info.avatarUrl
+                              ? "/" + current_info.avatarUrl
+                              : "https://docs.material-tailwind.com/img/face-2.jpg"
+                          }
                           alt="avatar"
                           size="xl"
+                          onClick={handleAvatarClick}
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          ref={fileInput}
+                          style={{ display: "none" }}
+                          onChange={handleFileChange}
                         />
                         <Typography
                           className="text-right mt-10 col-span-2"
                           variant="h5"
                         >
-                          Tania Andrew
+                          {current_info
+                            ? current_info.firstName +
+                              " " +
+                              current_info.lastName
+                            : ""}
                         </Typography>
                       </div>
                     </div>
@@ -108,21 +290,25 @@ function Dashboard() {
                   <div className="p-4">
                     <Typography variant="h6">Thông tin cá nhân</Typography>
                     <div className="grid grid-cols-3 gap-4 my-3 text-left">
-                      <Typography variant="small">Giới tính</Typography>
+                      <Typography variant="small">Email</Typography>
                       <Typography className="col-span-2" variant="small">
-                        Nam
+                        {current_info ? current_info.emailAddress : ""}
                       </Typography>
                     </div>
                     <div className="grid grid-cols-3 gap-4 my-3 text-left">
                       <Typography variant="small">Ngày sinh</Typography>
                       <Typography className="col-span-2" variant="small">
-                        01 tháng 01 năm 2000
+                        {new Date(birthday).getDate() +
+                          " tháng " +
+                          (new Date(birthday).getMonth() + 1) +
+                          " năm " +
+                          new Date(birthday).getFullYear()}
                       </Typography>
                     </div>
                     <div className="grid grid-cols-3 gap-4 my-3 text-left">
                       <Typography variant="small">Số điện thoại</Typography>
                       <Typography className="col-span-2" variant="small">
-                        0912345678
+                        {current_info ? current_info.phoneNumber : ""}
                       </Typography>
                     </div>
                   </div>
@@ -142,7 +328,7 @@ function Dashboard() {
                   </Button>
                 </DialogFooter>
               </Dialog>
-              <Dialog size="xs" open={open2} handler={handleOpen2}>
+              <Dialog size="sm" open={open2} handler={handleOpen2}>
                 <DialogHeader>
                   <Button variant="text" size="sm" onClick={handleOpen2}>
                     <ArrowBackIosIcon />
@@ -152,21 +338,64 @@ function Dashboard() {
                   </Typography>
                 </DialogHeader>
                 <DialogBody>
-                  <Input label="Username" value={"Tên hiển thị"} />
+                  <Input
+                    label="Username"
+                    value={username}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                    }}
+                  />
                   <div className="mt-5">
                     <Typography variant="h6">Thông tin cá nhân</Typography>
-                    <div className=" gap-4 my-3 text-left">
-                      <Typography variant="small">Giới tính</Typography>
-                      <div className="flex gap-10">
-                        <Radio name="type" label="Nam" />
-                        <Radio name="type" label="Nữ" defaultChecked />
+                    <div className="gap-4 my-3 text-left grid grid-cols-2">
+                      <div>
+                        <Typography variant="small" className="pb-2">
+                          Họ
+                        </Typography>
+                        <Input
+                          value={lastname}
+                          onChange={(e) => setLastname(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Typography variant="small" className="pb-2">
+                          Tên
+                        </Typography>
+                        <Input
+                          value={firstname}
+                          onChange={(e) => setFirstname(e.target.value)}
+                        />
                       </div>
                     </div>
                     <div className="my-3 text-left">
                       <Typography variant="small" className="pb-2">
-                        Ngày sinh
+                        Email
                       </Typography>
-                      <Input type="date" value={"2024-01-01"} />
+                      <Input
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
+                    <div className="my-3 text-left grid grid-cols-2 gap-4">
+                      <div>
+                        <Typography variant="small" className="pb-2">
+                          Số điện thoại
+                        </Typography>
+                        <Input
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Typography variant="small" className="pb-2">
+                          Ngày sinh
+                        </Typography>
+                        <Input
+                          type="date"
+                          value={birthday}
+                          onChange={(e) => setBirthday(e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
                   <Divider />
@@ -186,7 +415,16 @@ function Dashboard() {
                     variant="gradient"
                     color="blue"
                     onClick={() => {
-                      handleOpen2(), handleOpen1();
+                      changeInfo(
+                        username,
+                        password,
+                        phoneNumber,
+                        firstname,
+                        lastname,
+                        email,
+                        birthday,
+                        current_info.avatarUrl
+                      );
                     }}
                     className="w-50"
                   >

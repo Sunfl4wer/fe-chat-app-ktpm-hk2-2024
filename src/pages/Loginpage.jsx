@@ -3,13 +3,71 @@ import { Button, Input } from "@material-tailwind/react";
 import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
 import Icon from "../assets/Icon";
+import axios from "axios";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
 function Loginpage() {
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+  };
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+  };
+
+  const login = async (email, password) => {
+    try {
+      const data = {
+        phoneNumber: email,
+        password: password,
+      };
+      const result = await axios.post("http://localhost:8099/auth/login", data);
+      if (result.status === 200) {
+        Toast.fire({
+          icon: "success",
+          title: "Login successfully",
+        }).then(() => {
+          localStorage.setItem("user", email);
+          localStorage.setItem("id", result.data.user_id);
+          localStorage.setItem("token", result.data.token);
+          window.location.href = "/Dashboard";
+        });
+      }
+    } catch (error) {
+      if (error.response.data.phoneNumber) {
+        Toast.fire({
+          icon: "error",
+          title: error.response.data.phoneNumber,
+        });
+      } else if (error.response.data.password) {
+        Toast.fire({
+          icon: "error",
+          title: error.response.data.password,
+        });
+      }
+    }
+  };
+  const Toast = withReactContent(Swal).mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 1500,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
   return (
     <>
       <div className="grid lg:grid-cols-3 sm:grid-cols-1">
         <div className="h-screen lg:border-r-4">
           <div className="mt-20">
-            <h1 className="text-center text-6xl mb-5">BK OTT</h1>
+            <h1 className="text-center text-6xl mb-5">
+              BK <span className="text-[#006edc]">Zalo</span>
+            </h1>
             <Divider>
               <h3 className="text-center text-xl">Đăng nhập</h3>
             </Divider>
@@ -20,6 +78,7 @@ function Loginpage() {
                   variant="outlined"
                   label="Email hoặc số điện thoại"
                   placeholder="nguyenvana@gmail.com"
+                  onChange={handleEmailChange}
                 />
               </div>
               <div className="mb-5">
@@ -28,6 +87,8 @@ function Loginpage() {
                   variant="outlined"
                   label="Mật khẩu"
                   placeholder="Mật khẩu"
+                  type="password"
+                  onChange={handlePasswordChange}
                 />
               </div>
               <div className="mb-5 text-right">
@@ -37,8 +98,12 @@ function Loginpage() {
                   </a>
                 </div>
               </div>
-              <Button type="submit" color="indigo" className="w-full mb-5">
-                Submit
+              <Button
+                color="indigo"
+                className="w-full mb-5"
+                onClick={() => login(email, password)}
+              >
+                Đăng nhập
               </Button>
             </form>
             <div className="max-w-sm mx-auto">
@@ -47,7 +112,13 @@ function Loginpage() {
               </Divider>
             </div>
             <div className="max-w-sm mx-auto mt-5">
-              <Button href="#" color="indigo" className="w-full mb-5">
+              <Button
+                onClick={() => {
+                  window.location.href = "/register";
+                }}
+                color="indigo"
+                className="w-full mb-5"
+              >
                 Đăng ký
               </Button>
               <Button

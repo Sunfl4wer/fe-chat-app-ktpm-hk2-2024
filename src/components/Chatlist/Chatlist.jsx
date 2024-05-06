@@ -49,17 +49,81 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
     handleChat: PropTypes.func,
     handleInfo: PropTypes.func,
   };
-  const loadChatList = () => {
-    page;
-  };
-  const [imageUrl, setImageUrl] = React.useState(null);
 
+  const [imageUrl, setImageUrl] = React.useState(null);
+  const [search, setSearch] = React.useState("");
+  const [list, setList] = React.useState([]);
+  const [tempList, setTempList] = React.useState([]);
   const handleChatIndex = (index) => {
     handleIndex(index);
     var chat = "";
     handleChat(chat);
     handleInfo(chat);
   };
+  const searchUser = async (search) => {
+    const response = await axios.get(
+      "http://localhost:8099/users/search/" + search,
+      {
+        mode: "cors",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (response.status === 200) {
+      setList(response.data);
+    }
+  };
+  const loadChatList = async () => {
+    var response = await axios.get(
+      "http://localhost:8099/friends/pending/" + localStorage.getItem("user"),
+      {
+        mode: "cors",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (response.status === 200) {
+      setList(...list, response.data);
+      setTempList(...tempList, response.data);
+    }
+    response = await axios.get(
+      "http://localhost:8099/friends/accepted/" + localStorage.getItem("user"),
+      {
+        mode: "cors",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (response.status === 200) {
+      setList(...list, response.data);
+      setTempList(...tempList, response.data);
+    }
+  };
+  const addFriend = async (phoneNumber) => {
+    const data = {
+      senderPhoneNumber: localStorage.getItem("user"),
+      receiverPhoneNumber: phoneNumber,
+    };
+    const response = await axios.post("http://localhost:8099/friends", data, {
+      mode: "cors",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (response.status === 200) {
+      loadChatList();
+    }
+  };
+  React.useEffect(() => {
+    loadChatList();
+  }, []);
   return (
     <>
       <div className="m-4 grid grid-cols-6">
@@ -70,6 +134,7 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
                 type="search"
                 placeholder="Search"
                 className="peer h-full w-full rounded-[7px] border border-blue-gray-200 border-t-transparent !border-t-blue-gray-300 bg-transparent px-3 py-2.5 pl-9 font-sans text-sm font-normal text-blue-gray-700 outline outline-0 transition-all placeholder:text-blue-gray-300 placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2  focus:!border-blue-gray-300 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-blue-gray-50"
+                onChange={(e) => setSearch(e.target.value)}
               />
               <label className="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none !overflow-visible truncate text-[11px] font-normal leading-tight text-gray-500 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-blue-gray-200 before:transition-all before:content-none after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-blue-gray-200 after:transition-all after:content-none peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[3.75] peer-placeholder-shown:text-blue-gray-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gray-900 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:before:!border-gray-900 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-focus:after:!border-gray-900 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-blue-gray-500"></label>
             </div>
@@ -99,7 +164,7 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
         <Button size="sm" variant="text">
           <GroupAddOutlinedIcon />
         </Button>
-        <Button size="sm" variant="text">
+        <Button size="sm" onClick={() => searchUser(search)} variant="text">
           <PersonAddOutlinedIcon />
         </Button>
       </div>
@@ -133,8 +198,32 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
                 Hello
               </Typography>
             </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-4 w-100 p-3 hover:bg-gray-200 transition-transform ">
+        <div className="grid justify-center">
+          <Avatar
+            src="https://docs.material-tailwind.com/img/face-2.jpg"
+            alt="avatar"
+            size="md"
+            className="mt-1"
+          />
+        </div>
+        <div className="col-span-3 mt-1">
+          <div className="grid grid-cols-3">
+            <div className="col-span-2">
+              <Typography variant="h6">Jane Austin</Typography>
+            </div>
+          </div>
+          <div className="grid grid-cols-4">
+            <div className="col-span-3">
+              <Typography variant="small" color="gray" className="font-normal">
+                Good Morning
+              </Typography>
+            </div>
             <div className="grid justify-end">
-              <Chip color="success" size="small" label="1" />
+              <NotificationsOffIcon />
             </div>
           </div>
         </div>
@@ -151,21 +240,201 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
         <div className="col-span-3 mt-1">
           <div className="grid grid-cols-3">
             <div className="col-span-2">
-              <Typography variant="h6">Tania Andrew</Typography>
+              <Typography variant="h6">Dad</Typography>
             </div>
           </div>
           <div className="grid grid-cols-4">
             <div className="col-span-3">
               <Typography variant="small" color="gray" className="font-normal">
-                Hello
+                Tìm thấy đồ chưa?
               </Typography>
             </div>
             <div className="grid justify-end">
-              <NotificationsOffIcon />
+              <Chip color="success" size="small" label="2" />
             </div>
           </div>
         </div>
       </div>
+      <div className="grid grid-cols-4 w-100 p-3 hover:bg-gray-200 transition-transform ">
+        <div className="grid justify-center">
+          <Avatar
+            src="https://docs.material-tailwind.com/img/face-2.jpg"
+            alt="avatar"
+            size="md"
+            className="mt-1"
+          />
+        </div>
+        <div className="col-span-3 mt-1">
+          <div className="grid grid-cols-3">
+            <div className="col-span-2">
+              <Typography variant="h6">Mom</Typography>
+            </div>
+          </div>
+          <div className="grid grid-cols-4">
+            <div className="col-span-3">
+              <Typography variant="small" color="gray" className="font-normal">
+                Ăn cơm chưa?
+              </Typography>
+            </div>
+            <div className="grid justify-end">
+              <Chip color="success" size="small" label="2" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-4 w-100 p-3 hover:bg-gray-200 transition-transform ">
+        <div className="grid justify-center">
+          <Avatar
+            src="https://docs.material-tailwind.com/img/face-2.jpg"
+            alt="avatar"
+            size="md"
+            className="mt-1"
+          />
+        </div>
+        <div className="col-span-3 mt-1">
+          <div className="grid grid-cols-3">
+            <div className="col-span-2">
+              <Typography variant="h6">Kim Thành</Typography>
+            </div>
+          </div>
+          <div className="grid grid-cols-4">
+            <div className="col-span-3">
+              <Typography variant="small" color="gray" className="font-normal">
+                Cảm ơn
+              </Typography>
+            </div>
+            <div className="grid justify-end">
+              <Chip color="success" size="small" label="2" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-4 w-100 p-3 hover:bg-gray-200 transition-transform ">
+        <div className="grid justify-center">
+          <Avatar
+            src="https://docs.material-tailwind.com/img/face-2.jpg"
+            alt="avatar"
+            size="md"
+            className="mt-1"
+          />
+        </div>
+        <div className="col-span-3 mt-1">
+          <div className="grid grid-cols-3">
+            <div className="col-span-2">
+              <Typography variant="h6">Nguyễn Khoa</Typography>
+            </div>
+          </div>
+          <div className="grid grid-cols-4">
+            <div className="col-span-3">
+              <Typography variant="small" color="gray" className="font-normal">
+                Làm bài chung nào
+              </Typography>
+            </div>
+            <div className="grid justify-end">
+              <Chip color="success" size="small" label="2" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-4 w-100 p-3 hover:bg-gray-200 transition-transform ">
+        <div className="grid justify-center">
+          <Avatar
+            src="https://docs.material-tailwind.com/img/face-2.jpg"
+            alt="avatar"
+            size="md"
+            className="mt-1"
+          />
+        </div>
+        <div className="col-span-3 mt-1">
+          <div className="grid grid-cols-3">
+            <div className="col-span-2">
+              <Typography variant="h6">Duy</Typography>
+            </div>
+          </div>
+          <div className="grid grid-cols-4">
+            <div className="col-span-3">
+              <Typography variant="small" color="gray" className="font-normal">
+                Chào buổi tối
+              </Typography>
+            </div>
+            <div className="grid justify-end">
+              <Chip color="success" size="small" label="2" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-4 w-100 p-3 hover:bg-gray-200 transition-transform ">
+        <div className="grid justify-center">
+          <Avatar
+            src="https://docs.material-tailwind.com/img/face-2.jpg"
+            alt="avatar"
+            size="md"
+            className="mt-1"
+          />
+        </div>
+        <div className="col-span-3 mt-1">
+          <div className="grid grid-cols-3">
+            <div className="col-span-2">
+              <Typography variant="h6">Harry Cavel</Typography>
+            </div>
+          </div>
+          <div className="grid grid-cols-4">
+            <div className="col-span-3">
+              <Typography variant="small" color="gray" className="font-normal">
+                Can we talk more about it?
+              </Typography>
+            </div>
+            <div className="grid justify-end">
+              <Chip color="success" size="small" label="10" />
+            </div>
+          </div>
+        </div>
+      </div>
+      {list.length > 0 &&
+        list.map((item, i) => (
+          <div
+            key={i}
+            className={
+              index === i
+                ? "grid grid-cols-4 w-100 p-3 bg-blue-gray-100 transition-transform "
+                : "grid grid-cols-4 w-100 p-3  hover:bg-gray-200 transition-transform "
+            }
+            onClick={() => handleChatIndex(i)}
+          >
+            <div className="grid justify-center">
+              <Avatar
+                src={
+                  item
+                    ? item.avatarUrl
+                    : "https://docs.material-tailwind.com/img/face-2.jpg"
+                }
+                alt="avatar"
+                size="md"
+                className="mt-1"
+              />
+            </div>
+            <div className="col-span-3 mt-1">
+              <div className="grid grid-cols-3">
+                <div className="col-span-2">
+                  <Typography variant="h6">
+                    {item.firstName + " " + item.lastName}
+                  </Typography>
+                </div>
+                {item.id === Number(localStorage.getItem("id")) ? (
+                  ""
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="text"
+                    onClick={() => addFriend(item.phoneNumber)}
+                  >
+                    Kết bạn
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
     </>
   );
 };

@@ -49,8 +49,8 @@ import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
 function Message({ info, chat }) {
   Message.propTypes = {
     info: PropTypes.any,
@@ -62,11 +62,18 @@ function Message({ info, chat }) {
   const [open1, setOpen1] = React.useState(false);
   const handleOpen1 = () => setOpen1(!open1);
   const inputFileRef = React.useRef(null);
-  const notify = () => {
-    toast.success("Upload successfully !", {
-      position: "bottom-right",
-    });
-  };
+  const Toast = withReactContent(Swal).mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 1500,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
+
   const addIcon = (emoji) => {
     if (input instanceof File) {
       setInput(emoji);
@@ -121,8 +128,12 @@ function Message({ info, chat }) {
         }
       );
       if (response.status === 200) {
-        notify();
-        setInput("");
+        Toast.fire({
+          icon: "success",
+          title: "Upload successfully",
+        }).then(() => {
+          setInput("");
+        });
       }
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -139,11 +150,11 @@ function Message({ info, chat }) {
         >
           <CardBody className="p-3">
             <Typography>
-              &quot;I found solution to all my design needs from Creative Tim. I
-              use them as a freelancer in my hobby projects for fun! And its
-              really affordable, very humble guys !!!&quot;
+              I found solution to all my design needs from Creative Tim. I use
+              them as a freelancer in my hobby projects for fun! And its really
+              affordable, very humble guys !!!
             </Typography>
-            <Typography className="">12:45</Typography>
+            <Typography className="">10:00</Typography>
           </CardBody>
         </Card>
       </div>
@@ -177,11 +188,23 @@ function Message({ info, chat }) {
         >
           <CardBody className="p-3">
             <Typography color="black">
-              &quot;I found solution to all my design needs from Creative Tim. I
-              use them as a freelancer in my hobby projects for fun! And its
-              really affordable, very humble guys !!!&quot;
+              I found solution to all my design needs from Creative Tim. I use
+              them as a freelancer in my hobby projects for fun! And its really
+              affordable, very humble guys !!!
             </Typography>
             <Typography>12:45</Typography>
+          </CardBody>
+        </Card>
+      </div>
+      <div className="mt-5 grid grid-cols-1 gap-10">
+        <Card
+          color="transparent"
+          shadow={false}
+          className="w-full bg-[#e5efff] right-0 justify-self-end border-2 max-w-[40rem]"
+        >
+          <CardBody className="p-3">
+            <Typography>It's a honor, Tania</Typography>
+            <Typography className="">21:00</Typography>
           </CardBody>
         </Card>
       </div>
@@ -192,76 +215,8 @@ function Message({ info, chat }) {
           className="w-full border-2 max-w-[40rem]"
         >
           <CardBody className="p-3">
-            <Typography color="black">
-              &quot;I found solution to all my design needs from Creative Tim. I
-              use them as a freelancer in my hobby projects for fun! And its
-              really affordable, very humble guys !!!&quot;
-            </Typography>
-            <Typography>12:45</Typography>
-          </CardBody>
-        </Card>
-      </div>
-      <div className="mt-5 grid grid-cols-1 gap-10">
-        <Card
-          color="transparent"
-          shadow={false}
-          className="w-full border-2 max-w-[40rem]"
-        >
-          <CardBody className="p-3">
-            <Typography color="black">
-              &quot;I found solution to all my design needs from Creative Tim. I
-              use them as a freelancer in my hobby projects for fun! And its
-              really affordable, very humble guys !!!&quot;
-            </Typography>
-            <Typography>12:45</Typography>
-          </CardBody>
-        </Card>
-      </div>
-      <div className="mt-5 grid grid-cols-1 gap-10">
-        <Card
-          color="transparent"
-          shadow={false}
-          className="w-full border-2 max-w-[40rem]"
-        >
-          <CardBody className="p-3">
-            <Typography color="black">
-              &quot;I found solution to all my design needs from Creative Tim. I
-              use them as a freelancer in my hobby projects for fun! And its
-              really affordable, very humble guys !!!&quot;
-            </Typography>
-            <Typography>12:45</Typography>
-          </CardBody>
-        </Card>
-      </div>
-      <div className="mt-5 grid grid-cols-1 gap-10">
-        <Card
-          color="transparent"
-          shadow={false}
-          className="w-full border-2 max-w-[40rem]"
-        >
-          <CardBody className="p-3">
-            <Typography color="black">
-              &quot;I found solution to all my design needs from Creative Tim. I
-              use them as a freelancer in my hobby projects for fun! And its
-              really affordable, very humble guys !!!&quot;
-            </Typography>
-            <Typography>12:45</Typography>
-          </CardBody>
-        </Card>
-      </div>
-      <div className="mt-5 grid grid-cols-1 gap-10">
-        <Card
-          color="transparent"
-          shadow={false}
-          className="w-full border-2 max-w-[40rem]"
-        >
-          <CardBody className="p-3">
-            <Typography color="black">
-              &quot;I found solution to all my design needs from Creative Tim. I
-              use them as a freelancer in my hobby projects for fun! And its
-              really affordable, very humble guys !!!&quot;
-            </Typography>
-            <Typography>12:45</Typography>
+            <Typography color="black">OK man</Typography>
+            <Typography>22:00</Typography>
           </CardBody>
         </Card>
       </div>
@@ -273,12 +228,8 @@ function Message({ info, chat }) {
           ref={messagesEndRef}
         >
           <CardBody className="p-3">
-            <Typography color="black">
-              &quot;I found solution to all my design needs from Creative Tim. I
-              use them as a freelancer in my hobby projects for fun! And its
-              really affordable, very humble guys !!!&quot;
-            </Typography>
-            <Typography>12:45</Typography>
+            <Typography color="black">Hello</Typography>
+            <Typography>23:00</Typography>
           </CardBody>
         </Card>
       </div>
@@ -294,12 +245,12 @@ function Message({ info, chat }) {
           <Avatar
             src="https://docs.material-tailwind.com/img/face-2.jpg"
             alt="avatar"
-            size="sm"
+            size="md"
           />
           <div>
             <Typography variant="h6">Tania Andrew</Typography>
             <Typography variant="small" color="gray" className="font-normal">
-              Web Developer
+              Trực tuyến
             </Typography>
           </div>
         </div>
