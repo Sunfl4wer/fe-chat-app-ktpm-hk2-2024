@@ -51,10 +51,11 @@ import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import axios from "axios";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-function Message({ info, chat }) {
+function Message({ info, chat, handleChat }) {
   Message.propTypes = {
     info: PropTypes.any,
     chat: PropTypes.any,
+    handleChat: PropTypes.func,
   };
   const messagesEndRef = React.useRef();
   const [input, setInput] = React.useState("");
@@ -73,6 +74,47 @@ function Message({ info, chat }) {
       toast.onmouseleave = Swal.resumeTimer;
     },
   });
+  const loadChat = async () => {
+    const myResponse = await axios.get(
+      "http://localhost:8080/chatapp/conversations?userId=" +
+        localStorage.getItem("id"),
+      {
+        mode: "cors",
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("token"),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const opResponse = await axios.get(
+      "http://localhost:8080/chatapp/conversations?userId=" + info.id,
+      {
+        mode: "cors",
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("token"),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    var myChat = [];
+    var opChat = [];
+    var chat = [];
+    if (myResponse.status === 200 && opResponse.status === 200) {
+      opChat = myResponse.data.filter((item) => item.creatorId === info.id);
+      myChat = opResponse.data.filter(
+        (item) => item.creatorId === Number(localStorage.getItem("id"))
+      );
+      chat = [...myChat, ...opChat];
+      chat.sort((a, b) => {
+        for (let i = 0; i < 7; i++) {
+          if (a.createdAt[i] === b.createdAt[i]) continue;
+          return a.createdAt[i] - b.createdAt[i];
+        }
+        a.creatAt - b.creatAt;
+      });
+      handleChat(chat);
+    }
+  };
 
   const addIcon = (emoji) => {
     if (input instanceof File) {
@@ -86,7 +128,6 @@ function Message({ info, chat }) {
     }
   };
   const handleButtonClick = () => {
-    // trigger the click event of the input file
     inputFileRef.current.click();
   };
   const downloadImage = async () => {
@@ -139,10 +180,39 @@ function Message({ info, chat }) {
       console.error("Error uploading image:", error);
     }
   };
-  const sendMessage = async () => {};
+  const sendMessage = async () => {
+    try {
+      const message = {
+        creator: Number(localStorage.getItem("id")),
+        name: input,
+        participants: [Number(localStorage.getItem("id")), info.id],
+      };
+      const response = await axios.post(
+        "http://localhost:8080/chatapp/conversations",
+        message,
+        {
+          headers: {
+            Authorization: "Bearer " + localStorage.getItem("token"),
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (response.status === 200) {
+        Toast.fire({
+          icon: "success",
+          title: "Send successfully",
+        }).then(() => {
+          setInput("");
+          loadChat();
+        });
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+  };
   const chatList = (
     <>
-      <div className="mt-5 grid grid-cols-1 gap-10">
+      {/* <div className="mt-5 grid grid-cols-1 gap-10">
         <Card
           color="transparent"
           shadow={false}
@@ -157,7 +227,7 @@ function Message({ info, chat }) {
             <Typography className="">10:00</Typography>
           </CardBody>
         </Card>
-      </div>
+      </div> */}
       <div className="mt-5 grid grid-cols-1 gap-10">
         <Card
           color="transparent"
@@ -180,7 +250,7 @@ function Message({ info, chat }) {
           </CardBody>
         </Card>
       </div>
-      <div className="mt-5 grid grid-cols-1 gap-10">
+      {/* <div className="mt-5 grid grid-cols-1 gap-10">
         <Card
           color="transparent"
           shadow={false}
@@ -232,7 +302,45 @@ function Message({ info, chat }) {
             <Typography>23:00</Typography>
           </CardBody>
         </Card>
-      </div>
+      </div> */}
+      {chat.map((item, index) => {
+        return (
+          <div
+            key={index}
+            className={
+              item.creatorId === Number(localStorage.getItem("id"))
+                ? "mt-5 grid grid-cols-1 gap-10"
+                : "mt-5 grid grid-cols-1 gap-10"
+            }
+          >
+            <Card
+              color="transparent"
+              shadow={false}
+              className={
+                item.creatorId === Number(localStorage.getItem("id"))
+                  ? "w-full bg-[#e5efff] right-0 justify-self-end border-2 max-w-[40rem]"
+                  : "w-full border-2 max-w-[40rem]"
+              }
+              {...(index === chat.length - 1 ? { ref: messagesEndRef } : {})}
+            >
+              <CardBody className="p-3">
+                <Typography>{item.name}</Typography>
+                <Typography>
+                  {item.createdAt[3] +
+                    ":" +
+                    item.createdAt[4] +
+                    "  " +
+                    item.createdAt[2] +
+                    "/" +
+                    item.createdAt[1] +
+                    "/" +
+                    item.createdAt[0]}
+                </Typography>
+              </CardBody>
+            </Card>
+          </div>
+        );
+      })}
     </>
   );
   React.useEffect(() => {
@@ -243,12 +351,18 @@ function Message({ info, chat }) {
       <div className="row-span-1 grid grid-cols-2 border-b-2">
         <div className=" ms-10 flex items-center gap-4">
           <Avatar
-            src="https://docs.material-tailwind.com/img/face-2.jpg"
+            src={
+              info.avatarUrl
+                ? info.avatarUrl
+                : "https://docs.material-tailwind.com/img/face-2.jpg"
+            }
             alt="avatar"
             size="md"
           />
           <div>
-            <Typography variant="h6">Tania Andrew</Typography>
+            <Typography variant="h6">
+              {info.firstName + " " + info.lastName}
+            </Typography>
             <Typography variant="small" color="gray" className="font-normal">
               Trực tuyến
             </Typography>
@@ -280,7 +394,11 @@ function Message({ info, chat }) {
               <div className="grid grid-cols-1 gap-4">
                 <div className="grid grid-cols-3 justify-items-center">
                   <Avatar
-                    src="https://docs.material-tailwind.com/img/face-2.jpg"
+                    src={
+                      info.avatarUrl
+                        ? info.avatarUrl
+                        : "https://docs.material-tailwind.com/img/face-2.jpg"
+                    }
                     alt="avatar"
                     size="xl"
                   />
@@ -288,7 +406,7 @@ function Message({ info, chat }) {
                     className="text-right mt-10 col-span-2"
                     variant="h5"
                   >
-                    Tania Andrew
+                    {info.firstName + " " + info.lastName}
                   </Typography>
                 </div>
               </div>
@@ -296,21 +414,25 @@ function Message({ info, chat }) {
             <div className="p-4">
               <Typography variant="h6">Thông tin cá nhân</Typography>
               <div className="grid grid-cols-3 gap-4 my-3 text-left">
-                <Typography variant="small">Giới tính</Typography>
+                <Typography variant="small">Email</Typography>
                 <Typography className="col-span-2" variant="small">
-                  Nam
+                  {info ? info.emailAddress : ""}
                 </Typography>
               </div>
               <div className="grid grid-cols-3 gap-4 my-3 text-left">
                 <Typography variant="small">Ngày sinh</Typography>
                 <Typography className="col-span-2" variant="small">
-                  01 tháng 01 năm 2000
+                  {new Date(info.birthDate).getDate() +
+                    " tháng " +
+                    (new Date(info.birthDate).getMonth() + 1) +
+                    " năm " +
+                    new Date(info.birthDate).getFullYear()}
                 </Typography>
               </div>
               <div className="grid grid-cols-3 gap-4 my-3 text-left">
                 <Typography variant="small">Số điện thoại</Typography>
                 <Typography className="col-span-2" variant="small">
-                  0912345678
+                  {info ? info.phoneNumber : ""}
                 </Typography>
               </div>
             </div>

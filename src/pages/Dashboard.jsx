@@ -988,7 +988,11 @@ function Dashboard() {
             </div>
           </div>
         </div> */}
-        <Message info={info} chat={chat} />
+        {info ? (
+          <Message info={info} chat={chat} handleChat={handleChat} />
+        ) : (
+          ""
+        )}
       </div>
     </div>
   );

@@ -54,11 +54,53 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
   const [search, setSearch] = React.useState("");
   const [list, setList] = React.useState([]);
   const [tempList, setTempList] = React.useState([]);
-  const handleChatIndex = (index) => {
-    handleIndex(index);
-    var chat = "";
-    handleChat(chat);
-    handleInfo(chat);
+  const loadChat = async (i) => {
+    console.log(index, list);
+    const myResponse = await axios.get(
+      "http://localhost:8080/chatapp/conversations?userId=" +
+        localStorage.getItem("id"),
+      {
+        mode: "cors",
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("token"),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const opResponse = await axios.get(
+      "http://localhost:8080/chatapp/conversations?userId=" + list[i].id,
+      {
+        mode: "cors",
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("token"),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    var myChat = [];
+    var opChat = [];
+    var chat = [];
+    if (myResponse.status === 200 && opResponse.status === 200) {
+      opChat = myResponse.data.filter((item) => item.creatorId === list[i].id);
+      myChat = opResponse.data.filter(
+        (item) => item.creatorId === Number(localStorage.getItem("id"))
+      );
+      chat = [...myChat, ...opChat];
+      chat.sort((a, b) => {
+        for (let i = 0; i < 7; i++) {
+          if (a.createdAt[i] === b.createdAt[i]) continue;
+          return a.createdAt[i] - b.createdAt[i];
+        }
+        a.creatAt - b.creatAt;
+      });
+      handleChat(chat);
+      handleInfo(list[i]);
+    }
+  };
+
+  const handleChatIndex = (i) => {
+    handleIndex(i);
+    loadChat(i);
   };
   const searchUser = async (search) => {
     const response = await axios.get(
@@ -72,37 +114,27 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
       }
     );
     if (response.status === 200) {
-      setList(response.data);
+      setList(
+        response.data.filter(
+          (item) => item.id !== Number(localStorage.getItem("id"))
+        )
+      );
     }
   };
   const loadChatList = async () => {
-    var response = await axios.get(
-      "http://localhost:8099/friends/pending/" + localStorage.getItem("user"),
-      {
-        mode: "cors",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await axios.get("http://localhost:8099/users/search/0", {
+      mode: "cors",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+    });
     if (response.status === 200) {
-      setList(...list, response.data);
-      setTempList(...tempList, response.data);
-    }
-    response = await axios.get(
-      "http://localhost:8099/friends/accepted/" + localStorage.getItem("user"),
-      {
-        mode: "cors",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    if (response.status === 200) {
-      setList(...list, response.data);
-      setTempList(...tempList, response.data);
+      setList(
+        response.data.filter(
+          (item) => item.id !== Number(localStorage.getItem("id"))
+        )
+      );
     }
   };
   const addFriend = async (phoneNumber) => {
@@ -169,7 +201,7 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
         </Button>
       </div>
       <Divider sx={{ borderWidth: "1px" }}></Divider>
-      <div
+      {/* <div
         className={
           index === 0
             ? "grid grid-cols-4 w-100 p-3 bg-blue-gray-100 transition-transform "
@@ -389,7 +421,7 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
       {list.length > 0 &&
         list.map((item, i) => (
           <div
@@ -420,17 +452,6 @@ const Chatlist = ({ page, index, handleIndex, handleChat, handleInfo }) => {
                     {item.firstName + " " + item.lastName}
                   </Typography>
                 </div>
-                {item.id === Number(localStorage.getItem("id")) ? (
-                  ""
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="text"
-                    onClick={() => addFriend(item.phoneNumber)}
-                  >
-                    Kết bạn
-                  </Button>
-                )}
               </div>
             </div>
           </div>
